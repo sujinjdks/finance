@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>회의비 예산관리</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 16px;
+
+      margin: 0;
+      padding: 40px;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f5f5f5;
+      display: flex;
+      justify-content: center;
+    }
+    .container {
+      box-shadow: none;
+      border-radius: 0;
+      padding: 0;
+      margin: 0;
+
+      width: 100%;
+      width: 100%; max-width: none;
+      background: #fff;
+      padding: 0 4px;
+      border-radius: 10px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.08);
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .input-group, .filter-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .input-group input,
+    .filter-group input {
+      padding: 10px 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      flex: 1;
+      min-width: 150px;
+      font-size: 14px;
+    }
+    .input-group button,
+    .filter-group button {
+      padding: 10px 14px;
+      background-color: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .input-group .button-wrapper {
+      margin-left: auto;
+    }
+    #total {
+      text-align: right;
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+    table {
+      table-layout: auto;
+      background-color: white;
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    th, td {
+      width: 1%;
+      white-space: nowrap;
+      font-size: 12px;
+      border: 1px solid #e0e0e0;
+      padding: 12px 16px;
+      text-align: center;
+    }
+    th {
+      background-color: #fff9db;
+      background-color: #f3f4f6;
+      font-weight: 600;
+    }
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    .action-buttons button {
+      padding: 10px 20px;
+      font-size: 14px;
+      cursor: pointer;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      background-color: white;
+    }
+    .action-buttons button:hover {
+      background-color: #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <h2>회의비 예산관리</h2>
+
+    <div class="input-group">
+      <input type="text" id="name" placeholder="이름">
+      <input type="date" id="schedule">
+      <input type="text" id="reason" placeholder="사유">
+      <input type="number" id="amount" placeholder="금액">
+      <div class="button-wrapper">
+        <button onclick="addRecord()">추가</button>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <input type="month" id="filterMonth">
+      <button onclick="filterByMonth()">검색</button>
+    </div>
+
+    <div id="total">합계: 0 원</div>
+
+    <table>
+      <thead>
+        <tr>
+          <th></th>
+          <th>이름</th>
+          <th>일정</th>
+          <th>사유</th>
+          <th>금액</th>
+        </tr>
+      </thead>
+      <tbody id="recordTable"></tbody>
+    </table>
+
+    <div class="action-buttons">
+      <button onclick="deleteChecked()">선택 삭제</button>
+      <button onclick="editSelected()">선택 수정</button>
+    </div>
+  </div>
+
+  <script>
+    let records = JSON.parse(localStorage.getItem('records') || '[]');
+
+    function saveRecords() {
+      localStorage.setItem('records', JSON.stringify(records));
+    }
+
+    function addRecord() {
+      const name = document.getElementById('name').value;
+      const schedule = document.getElementById('schedule').value;
+      const reason = document.getElementById('reason').value;
+      const amount = parseInt(document.getElementById('amount').value);
+      if (!name || !schedule || !reason || !amount) {
+        alert("모든 항목을 입력하세요.");
+        return;
+      }
+      records.push({ name, schedule, reason, amount });
+      saveRecords();
+      clearInputs();
+      filterByMonth();
+    }
+
+    function clearInputs() {
+      document.getElementById('name').value = '';
+      document.getElementById('schedule').value = '';
+      document.getElementById('reason').value = '';
+      document.getElementById('amount').value = '';
+    }
+
+    function filterByMonth() {
+      const selectedMonth = document.getElementById('filterMonth').value;
+      const monthToUse = selectedMonth || new Date().toISOString().slice(0, 7);
+      const table = document.getElementById('recordTable');
+      table.innerHTML = '';
+      let total = 0;
+      const filtered = records.filter(r => r.schedule.startsWith(monthToUse));
+      filtered.forEach((r, index) => {
+        const row = `<tr>
+          <td><input type="checkbox" data-index="${records.indexOf(r)}"></td>
+          <td>${r.name}</td>
+          <td>${r.schedule}</td>
+          <td>${r.reason}</td>
+          <td>${r.amount.toLocaleString()}</td>
+        </tr>`;
+        total += r.amount;
+        table.innerHTML += row;
+      });
+      document.getElementById('total').innerText = `합계: ${total.toLocaleString()} 원`;
+      document.getElementById('filterMonth').value = monthToUse;
+    }
+
+    function deleteChecked() {
+      const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+      const indexes = Array.from(checkboxes).map(cb => parseInt(cb.dataset.index));
+      records = records.filter((_, i) => !indexes.includes(i));
+      saveRecords();
+      filterByMonth();
+    }
+
+    function editSelected() {
+      const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+      if (checkboxes.length !== 1) {
+        alert("수정하려면 하나만 선택해주세요.");
+        return;
+      }
+      const index = parseInt(checkboxes[0].dataset.index);
+      const item = records[index];
+      document.getElementById('name').value = item.name;
+      document.getElementById('schedule').value = item.schedule;
+      document.getElementById('reason').value = item.reason;
+      document.getElementById('amount').value = item.amount;
+      records.splice(index, 1);
+      saveRecords();
+      filterByMonth();
+    }
+
+    window.onload = filterByMonth;
+  </script>
+</body>
+</html>
