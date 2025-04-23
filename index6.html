@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>회의비 예산관리</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f3f4f6;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+    }
+    .container {
+      background: white;
+      margin: 30px 0;
+      width: 100%;
+      max-width: 600px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      padding: 20px;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .input-group, .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    input, button {
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    button {
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #2563eb;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+    th, td {
+      border: 1px solid #e5e7eb;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #f9fafb;
+    }
+    #total {
+      text-align: right;
+      font-weight: bold;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>회의비 예산관리</h2>
+
+    <div class="input-group">
+      <input type="text" id="name" placeholder="이름">
+      <input type="date" id="schedule">
+      <input type="text" id="reason" placeholder="사유">
+      <input type="number" id="amount" placeholder="금액">
+      <button onclick="addRecord()">추가</button>
+    </div>
+
+    <div class="filter-group">
+      <input type="month" id="filterMonth">
+      <button onclick="filterByMonth()">검색</button>
+    </div>
+
+    <div id="total">합계: 0 원</div>
+
+    <table>
+      <thead>
+        <tr>
+          <th></th>
+          <th>이름</th>
+          <th>일정</th>
+          <th>사유</th>
+          <th>금액</th>
+        </tr>
+      </thead>
+      <tbody id="recordTable"></tbody>
+    </table>
+
+    <button onclick="deleteChecked()" style="margin-top: 15px; width: 100%;">선택 삭제</button>
+  </div>
+
+  <script>
+    let records = JSON.parse(localStorage.getItem('records') || '[]');
+
+    function saveRecords() {
+      localStorage.setItem('records', JSON.stringify(records));
+    }
+
+    function addRecord() {
+      const name = document.getElementById('name').value;
+      const schedule = document.getElementById('schedule').value;
+      const reason = document.getElementById('reason').value;
+      const amount = parseInt(document.getElementById('amount').value);
+      if (!name || !schedule || !reason || !amount) {
+        alert("모든 항목을 입력하세요.");
+        return;
+      }
+      records.push({ name, schedule, reason, amount });
+      saveRecords();
+      clearInputs();
+      filterByMonth();
+    }
+
+    function clearInputs() {
+      document.getElementById('name').value = '';
+      document.getElementById('schedule').value = '';
+      document.getElementById('reason').value = '';
+      document.getElementById('amount').value = '';
+    }
+
+    function filterByMonth() {
+      const selectedMonth = document.getElementById('filterMonth').value;
+      const monthToUse = selectedMonth || new Date().toISOString().slice(0, 7);
+      const table = document.getElementById('recordTable');
+      table.innerHTML = '';
+      let total = 0;
+      const filtered = records.filter(r => r.schedule.startsWith(monthToUse));
+      filtered.forEach((r, index) => {
+        const row = `<tr>
+          <td><input type="checkbox" data-index="${records.indexOf(r)}"></td>
+          <td>${r.name}</td>
+          <td>${r.schedule}</td>
+          <td>${r.reason}</td>
+          <td>${r.amount.toLocaleString()}</td>
+        </tr>`;
+        total += r.amount;
+        table.innerHTML += row;
+      });
+      document.getElementById('total').innerText = `합계: ${total.toLocaleString()} 원`;
+      document.getElementById('filterMonth').value = monthToUse;
+    }
+
+    function deleteChecked() {
+      const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+      const indexes = Array.from(checkboxes).map(cb => parseInt(cb.dataset.index));
+      records = records.filter((_, i) => !indexes.includes(i));
+      saveRecords();
+      filterByMonth();
+    }
+
+    window.onload = filterByMonth;
+  </script>
+</body>
+</html>
